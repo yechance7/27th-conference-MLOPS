@@ -287,6 +287,17 @@ resource "aws_iam_role_policy" "ingestor" {
       {
         Effect   = "Allow"
         Action   = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.artifacts.arn,
+          "${aws_s3_bucket.artifacts.arn}/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
           "logs:CreateLogStream",
           "logs:CreateLogGroup",
           "logs:PutLogEvents"
