@@ -4,17 +4,13 @@ Lightsail CICD 연동 확인을 위한 배포 검증 DAG
 이 DAG는 Lightsail CICD 파이프라인이 정상적으로 동작하는지 확인하기 위한 간단한 테스트 DAG입니다.
 """
 from datetime import datetime, timedelta
+import sys
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
-import sys
-from pathlib import Path
 
-# utils 경로 추가
-utils_path = Path(__file__).resolve().parents[3] / 'utils'
-sys.path.insert(0, str(utils_path))
-
-from dag_utils import get_dag_id, get_default_args
+from utils.dag_utils import get_dag_id, get_default_args
 
 def print_deployment_info(**context):
     """배포 환경 정보를 출력합니다."""
