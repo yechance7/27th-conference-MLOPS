@@ -53,7 +53,7 @@ def get_default_args(retries: int = 2,
         Dict[str, Any]: 기본 인자 딕셔너리
     """
     default_args = {
-        'owner': 'data-engineering',
+        'owner': 'ybigta-mlops',
         'depends_on_past': False,
         'retries': retries,
         'retry_delay': timedelta(minutes=retry_delay_minutes),
