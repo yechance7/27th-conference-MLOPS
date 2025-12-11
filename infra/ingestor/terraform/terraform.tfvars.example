@@ -17,8 +17,14 @@ instance_type_ingestor = "t3.micro"
 
 # Lambda + pipeline
 lambda_schedule_expression = "rate(5 minutes)"
-news_data_source           = "TEST"
-env_parameter_name        = "/mlops/collector/env"
+lambda_schedule_expression_cryptopanic = "rate(8 hours)" # ~90 calls/month under free tier
+news_data_source           = "RSS" # prefix used by the RSS Lambda
+cryptopanic_api_key        = ""    # only needed for CryptoPanic
+news_fetch_content         = "false" # set "true" to fetch article HTML text into payload
+news_max_article_bytes     = 524288
+news_max_article_chars     = 4000
+news_content_prefix        = "ExtContent"
+env_parameter_name         = "/mlops/collector/env"
 
 # Optional shared tags
 tags = {
