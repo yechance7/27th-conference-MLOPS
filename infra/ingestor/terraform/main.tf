@@ -72,9 +72,46 @@ variable "lambda_schedule_expression" {
   description = "EventBridge schedule expression driving the news lambda."
 }
 
+variable "lambda_schedule_expression_cryptopanic" {
+  type        = string
+  default     = "rate(8 hours)"
+  description = "EventBridge schedule expression for CryptoPanic news (default keeps under ~100 req/month)."
+}
+
 variable "news_data_source" {
   type        = string
-  default     = "TEST"
+  default     = "RSS"
+  description = "Prefix used by the RSS news Lambda (e.g., RSS)."
+}
+
+variable "cryptopanic_api_key" {
+  type        = string
+  default     = ""
+  description = "API key for CryptoPanic (leave blank to use RSS)."
+}
+
+variable "news_fetch_content" {
+  type        = string
+  default     = "false"
+  description = "Whether to fetch article HTML content (true/false)."
+}
+
+variable "news_max_article_bytes" {
+  type        = number
+  default     = 524288
+  description = "Maximum bytes to download per article when fetching content."
+}
+
+variable "news_max_article_chars" {
+  type        = number
+  default     = 4000
+  description = "Maximum characters of extracted text to keep per article."
+}
+
+variable "news_content_prefix" {
+  type        = string
+  default     = "ExtContent"
+  description = "S3 prefix for enriched articles."
 }
 
 variable "env_parameter_name" {
@@ -412,13 +449,19 @@ resource "aws_autoscaling_group" "ingestor" {
 }
 
 # ------------------------
-# Lambda to mock news ingestion
+# News ingestion Lambdas (RSS + CryptoPanic)
 # ------------------------
 
 data "archive_file" "news_lambda" {
   type        = "zip"
   source_dir  = "${path.module}/../lambda/news_ingestor"
   output_path = "${path.module}/../lambda/news_ingestor.zip"
+}
+
+data "archive_file" "news_content_lambda" {
+  type        = "zip"
+  source_dir  = "${path.module}/../lambda/news_content_fetcher"
+  output_path = "${path.module}/../lambda/news_content_fetcher.zip"
 }
 
 data "aws_iam_policy_document" "assume_lambda" {
@@ -446,7 +489,7 @@ resource "aws_iam_role_policy" "news_lambda" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["s3:PutObject"]
+        Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.landing.arn}/*"
       },
       {
@@ -465,29 +508,84 @@ resource "aws_iam_role_policy" "news_lambda" {
 resource "aws_lambda_function" "news_ingestor" {
   function_name = "${var.project}-news"
   role          = aws_iam_role.news_lambda.arn
-  handler       = "main.handler"
+  handler       = "main.lambda_handler"
   runtime       = "python3.11"
   filename      = data.archive_file.news_lambda.output_path
   source_code_hash = data.archive_file.news_lambda.output_base64sha256
   environment {
     variables = {
-      BUCKET_NAME      = aws_s3_bucket.landing.id
-      NEWS_DATA_SOURCE = var.news_data_source
+      LANDING_BUCKET_NAME = aws_s3_bucket.landing.id
+      NEWS_SOURCE         = var.news_data_source
+      NEWS_FETCH_CONTENT  = var.news_fetch_content
+      NEWS_MAX_ARTICLE_BYTES = var.news_max_article_bytes
+      NEWS_MAX_ARTICLE_CHARS = var.news_max_article_chars
+    }
+  }
+  tags = local.tags
+}
+
+resource "aws_lambda_function" "news_ingestor_cryptopanic" {
+  function_name = "${var.project}-news-cryptopanic"
+  role          = aws_iam_role.news_lambda.arn
+  handler       = "main.lambda_handler"
+  runtime       = "python3.11"
+  filename      = data.archive_file.news_lambda.output_path
+  source_code_hash = data.archive_file.news_lambda.output_base64sha256
+  environment {
+    variables = {
+      LANDING_BUCKET_NAME = aws_s3_bucket.landing.id
+      NEWS_SOURCE         = "CRYPTOPANIC"
+      CRYPTOPANIC_API_KEY = var.cryptopanic_api_key
+      NEWS_FETCH_CONTENT  = var.news_fetch_content
+      NEWS_MAX_ARTICLE_BYTES = var.news_max_article_bytes
+      NEWS_MAX_ARTICLE_CHARS = var.news_max_article_chars
+    }
+  }
+  tags = local.tags
+}
+
+resource "aws_lambda_function" "news_content_fetcher" {
+  function_name = "${var.project}-news-content"
+  role          = aws_iam_role.news_lambda.arn
+  handler       = "main.lambda_handler"
+  runtime       = "python3.11"
+  timeout       = 60
+  filename      = data.archive_file.news_content_lambda.output_path
+  source_code_hash = data.archive_file.news_content_lambda.output_base64sha256
+  environment {
+    variables = {
+      LANDING_BUCKET_NAME      = aws_s3_bucket.landing.id
+      DEST_PREFIX              = var.news_content_prefix
+      SOURCE_PREFIX            = "Ext/${var.news_data_source}/"
+      NEWS_MAX_ARTICLE_BYTES   = var.news_max_article_bytes
+      NEWS_MAX_ARTICLE_CHARS   = var.news_max_article_chars
     }
   }
   tags = local.tags
 }
 
 resource "aws_cloudwatch_event_rule" "news_schedule" {
-  name                = "${var.project}-news-schedule"
+  name                = "${var.project}-news-schedule-rss"
   schedule_expression = var.lambda_schedule_expression
   tags                = local.tags
 }
 
 resource "aws_cloudwatch_event_target" "news_target" {
   rule      = aws_cloudwatch_event_rule.news_schedule.name
-  target_id = "news-lambda"
+  target_id = "news-lambda-rss"
   arn       = aws_lambda_function.news_ingestor.arn
+}
+
+resource "aws_cloudwatch_event_rule" "news_schedule_cryptopanic" {
+  name                = "${var.project}-news-schedule-cryptopanic"
+  schedule_expression = var.lambda_schedule_expression_cryptopanic
+  tags                = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "news_target_cryptopanic" {
+  rule      = aws_cloudwatch_event_rule.news_schedule_cryptopanic.name
+  target_id = "news-lambda-cryptopanic"
+  arn       = aws_lambda_function.news_ingestor_cryptopanic.arn
 }
 
 resource "aws_lambda_permission" "allow_events" {
@@ -496,6 +594,35 @@ resource "aws_lambda_permission" "allow_events" {
   function_name = aws_lambda_function.news_ingestor.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.news_schedule.arn
+}
+
+resource "aws_lambda_permission" "allow_events_cryptopanic" {
+  statement_id  = "AllowExecutionFromEventsCrypto"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.news_ingestor_cryptopanic.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.news_schedule_cryptopanic.arn
+}
+
+resource "aws_lambda_permission" "allow_s3_news_content" {
+  statement_id  = "AllowExecutionFromS3Content"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.news_content_fetcher.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.landing.arn
+}
+
+resource "aws_s3_bucket_notification" "landing_news_content" {
+  bucket = aws_s3_bucket.landing.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.news_content_fetcher.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "Ext/${var.news_data_source}/"
+    filter_suffix       = ".json"
+  }
+
+  depends_on = [aws_lambda_permission.allow_s3_news_content]
 }
 
 # ------------------------
