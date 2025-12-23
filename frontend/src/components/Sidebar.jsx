@@ -22,12 +22,15 @@ export default function Sidebar({ connected, latency, logs }) {
       <div className="log-section">
         <div className="section-header">1. System Logs</div>
         <div className="log-list">
-          {logs.map(entry => (
-            <div className="log-item" key={`${entry.timestamp}-${entry.message}`}>
-              <span className="log-time">{entry.timestamp}</span>
-              <span>{entry.message}</span>
-            </div>
-          ))}
+          {logs.map(entry => {
+            const timeStr = new Date(entry.timestamp).toLocaleTimeString();
+            return (
+              <div className="log-item" key={entry.key || `${entry.timestamp}-${entry.message}`}>
+                <span className="log-time">{timeStr}</span>
+                <span>{entry.message}</span>
+              </div>
+            );
+          })}
           {logs.length === 0 && <div className="log-item">No logs yet.</div>}
         </div>
       </div>
