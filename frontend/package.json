@@ -12,6 +12,7 @@
     "start": "electron ."
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.2",
     "electron": "^28.2.0",
     "lightweight-charts": "^4.1.1",
     "react": "^18.2.0",

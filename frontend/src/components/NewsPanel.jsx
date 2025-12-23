@@ -1,42 +1,38 @@
 export default function NewsPanel({ newsItems }) {
   return (
-    <section className="news-panel">
+    <section
+      className="news-panel"
+      style={{ maxHeight: '100%', overflowY: 'auto' }}
+    >
       <div className="section-header" style={{ marginBottom: 10 }}>
-        Live News (Sentiment Analysis)
+        Live News
       </div>
       {newsItems.length === 0 && (
         <div className="news-item" style={{ borderLeftColor: '#555' }}>
           <div className="news-title">Waiting for headlines…</div>
           <div className="news-meta">
             <span>Source: -</span>
-            <span className="news-sentiment neutral">Neutral</span>
           </div>
         </div>
       )}
       {newsItems.map(item => {
-        const sentimentLabel = item.sentiment_label || item.sentiment || 'neutral';
-        const sentimentClass =
-          sentimentLabel.toLowerCase() === 'negative'
-            ? 'negative'
-            : sentimentLabel.toLowerCase() === 'neutral'
-            ? 'neutral'
-            : '';
-        const scoreText =
-          typeof item.score === 'number' ? ` (${item.score.toFixed(2)})` : '';
+        const published = item.published_at || item.timestamp || '-';
+        const source = item.source || (item.link ? new URL(item.link).hostname : 'supabase');
 
         return (
           <div
             className="news-item"
-            key={`${item.title}-${item.timestamp}`}
-            style={{ borderLeftColor: sentimentClass === 'negative' ? '#ff0055' : sentimentClass === 'neutral' ? '#555' : 'var(--accent-green)' }}
+            key={`${item.title}-${item.timestamp || item.published_at || item.link || Math.random()}`}
+            style={{ borderLeftColor: '#555' }}
           >
             <div className="news-title">{item.title}</div>
             <div className="news-meta">
-              <span>Source: {item.source}</span>
-              <span className={`news-sentiment ${sentimentClass}`}>
-                {sentimentLabel.charAt(0).toUpperCase() + sentimentLabel.slice(1)}
-                {scoreText}
-              </span>
+              <span>{published}</span>
+              {item.link && (
+                <a href={item.link} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
+                  {source || 'Link'}
+                </a>
+              )}
             </div>
           </div>
         );

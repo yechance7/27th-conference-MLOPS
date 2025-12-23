@@ -45,6 +45,7 @@ body {
   flex-direction: column;
   padding: 15px;
   gap: 20px;
+  height: 100vh;
 }
 
 .app-title {
@@ -144,10 +145,12 @@ body {
 .main-container {
   flex: 1;
   display: grid;
-  grid-template-rows: 65% 35%;
-  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(520px, 68vh) minmax(260px, 32vh);
+  grid-template-columns: 2fr 1fr;
   gap: 1px;
   background-color: var(--border-color);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .chart-area {
@@ -272,9 +275,13 @@ body {
 .news-panel {
   background-color: var(--panel-bg);
   padding: 15px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  grid-row: 2;
+  grid-column: 1 / 2;
 }
 
 .news-item {
@@ -438,4 +445,104 @@ body {
 
 .metric-value.neg {
   color: var(--accent-red);
+}
+
+.inference-panel {
+  background: var(--panel-bg);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--border-color);
+  grid-row: 2;
+  grid-column: 2 / 3;
+  min-height: 260px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.infer-actions button {
+  background: var(--accent-green);
+  color: #0b1018;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.infer-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.infer-error {
+  color: var(--accent-red);
+  font-size: 0.9rem;
+}
+
+.infer-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.infer-meta {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.infer-model {
+  grid-column: 1 / -1;
+  word-break: break-all;
+}
+
+.infer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.infer-card {
+  background: #11161f;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infer-label {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.infer-value {
+  margin-top: 4px;
+  font-size: 1.1rem;
+  font-family: var(--font-mono);
+}
+
+.infer-value.pos {
+  color: var(--accent-green);
+}
+
+.infer-value.neg {
+  color: var(--accent-red);
+}
+
+.infer-placeholder {
+  color: var(--text-sub);
+  font-size: 0.9rem;
+}
+
+.infer-actual {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
 }

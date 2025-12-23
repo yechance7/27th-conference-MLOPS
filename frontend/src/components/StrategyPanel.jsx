@@ -18,19 +18,8 @@ export default function StrategyPanel({ strategies, leverage, onChangeLeverage }
     <section className="strategy-panel">
       <div className="section-header">
         <span>Strategy Selector & Hypothetical PnL</span>
-        <div className="lev-control">
-          <label htmlFor="leverage">Leverage</label>
-          <select
-            id="leverage"
-            value={leverage}
-            onChange={e => onChangeLeverage?.(Number(e.target.value))}
-          >
-            {[1, 2, 3, 4, 10].map(val => (
-              <option key={val} value={val}>
-                {val}x
-              </option>
-            ))}
-          </select>
+        <div className="lev-control" style={{ opacity: 0.7 }}>
+          <span>Leverage: 1x (fixed)</span>
         </div>
       </div>
 
